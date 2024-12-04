@@ -26,6 +26,7 @@ RLSim
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 import matlab.engine
 
 class Sim(object):
@@ -33,7 +34,7 @@ class Sim(object):
     def __init__(self, 
                  model_path: str,
                  measured_variables: list[str],
-                 controlled_variables: list[str],
+                 controlled_variables: list[str] | None=None,
                  controller: any=None,
                  state_estimator: any=None,
                  varying_parameters: dict[str, np.ndarray] | None=None,
@@ -54,7 +55,7 @@ class Sim(object):
         self._noise = noise_signals;
         self._settings = {"StopTime": stop_time, "FixedStep": time_step};
         self._eng = matlab.engine.start_matlab();
-        self._sim_data = {};
+        self._sim_data = None;
 
         return;
 
@@ -63,14 +64,139 @@ class Sim(object):
         Run a simulation.
 
         This method can be used to run a complete simulation of a Simulink model.
+
+        Returns
+        -------
+        results : pd.DataFrame
+            Simulation results.
         """
 
         self._reset();
         self._config_sim();
+        self._check_controller();
+
+        time_index = 0;
+        measurement_data = {var: 0 for var in self._measurements};
+
+        for var in self._measurements:
+            
+            self._eng.eval(f"{var} = out.{var};", nargout=0);
+            measurement_data[var] = self._eng.workspace[f"{var}"];
+            
+            if(var in self._noise.keys()):
+                
+                measurement_data[var] += self._noise[var][time_index];
+
+        for name, value in self._varying_params:
+
+            self._eng.eval(f"set_param('{self._model}/{name}', 'Value', '{value}')");
+
+        if(self._controller is None):
+
+            next_sample = self._settings["FixedStep"];
+            #next_sample = self._settings["StopTime"] + self._settings["FixedStep"]; #! Change this -> fixed step only.
+
+        else:
+
+            next_sample = self._controller.Ts;
+
+        measurement_vals = np.array([val for val in measurement_data.values()]);
+
+        if(self._state_estimator is not None):
+
+            controller_inputs = self._state_estimator(measurement_vals); #! State estimator must override the call method.
+
+        else:
+
+            controller_inputs = measurement_vals;
+
+        control_actions = self._controller(controller_inputs, self._refs[time_index:time_index+self._lookahead]); #! Controller must override the call method.
+        
+        for control_var, u in zip(self._control_vars, control_actions):
+
+            self._eng.eval(f"set_param('{self._model}/{control_var}', 'Value', '{u}')");
+
+        time_index += 1;
+
+        while(self._eng.eval(f"get_param('{self._model}', 'SimulationStatus');", nargout=1) != "stopped"):
+
+            for name, value in self._varying_params:
+
+                self._eng.eval(f"set_param('{self._model}/{name}', 'Value', '{value}')");
+
+            if(self._eng.eval(f"get_param('{self._model}', 'SimulationTime')", nargout=1) >= next_sample):
+
+                #TODO: Add logs or progress bar to report on simulation progress.
+
+                for var in self._measurements:
+
+                    self._eng.eval(f"{var} = out.{var}(length(out.{var}));", nargout=0);
+                    measurement_data[var] = self._eng.workspace[f"{var}"];
+                
+                    if(var in self._noise.keys()):
+                
+                        measurement_data[var] += self._noise[var][time_index];
+
+                if(self._state_estimator is not None):
+
+                    controller_inputs = self._state_estimator(measurement_vals); #! State estimator must override the call method.
+
+                else:
+
+                    controller_inputs = measurement_vals;
+
+                control_actions = self._controller(controller_inputs, self._refs[time_index:time_index+self._lookahead]); #! Controller must override the call method.
+
+                for control_var, u in zip(self._control_vars, control_actions):
+
+                    self._eng.eval(f"set_param('{self._model}/{control_var}', 'Value', '{u}')");
+
+                next_sample += self._controller.Ts; #! Controller must have a Ts attribute or property.
+
+            self._eng.eval(f"set_param('{self._model}', 'SimulationCommand', 'continue', 'SimulationCommand', 'pause')", nargout=0);
+            time_index += 1;
+
+        vars_list = self._measurements + self._control_vars;
+
+        for var in vars_list:
+
+            self._eng.eval(f"{var} = out.{var};", nargout=0);
+
+        final_data = {var: np.ravel(np.asarray(self._eng.workspace[f"{var}"])) for var in vars_list};
+
+        self._eng.eval("t = out.tout;", nargout=0);
+        final_data["t"] = np.ravel(np.asarray(self._eng.workspace["t"]));
+
+        self._sim_data = pd.DataFrame(final_data);
+
+        return self._sim_data;
+
+    def plot(self, height: float=10.0, width: float=10.0) -> None:
+        # Plot simulation results.
+
+        #This method can be used to visualise simulation results.
+
+        #TODO: Write this method once the run method is completed.
 
         pass
 
-    def plot(self) -> None:
+    def save(self, file_path: str) -> None:
+        """
+        Save simulation results to a file.
+
+        This method can be used to save simulation results to a .csv file.
+
+        Parameters
+        ----------
+        file_path : str
+            Path to the file where the results should be stored.
+
+        #TODO: finish writing this method once the run method is completed and tested.
+        """
+
+        # Add support for other file types -> pickle and parquet.
+        # Check for file termination and select the saving procedure accordingly.
+        # Raise an exception if an unsupported file format (or none at all) is specified.
 
         pass
 
@@ -83,6 +209,40 @@ class Sim(object):
 
         self._eng.quit();
     
+        return;
+
+    def set_controller(self, new_controller: any) -> None:
+        """
+        Change the system's controller.
+
+        This method can be used to change the system's controller either before or after \
+        a simulation has been run. This can be useful to run multiple simulations ... .
+        Note that changing controllers while the simulation is running is currently not supported.
+
+        Parameters
+        ----------
+        new_controller : any
+            New controller.
+        """
+
+        self._controller = new_controller;
+
+        return;
+
+    def set_state_estimator(self, new_state_estimator: any) -> None:
+        """
+        _summary_
+
+        _extended_summary_
+
+        Parameters
+        ----------
+        new_state_estimator : any
+            New state estimator.
+        """
+
+        self._state_estimator = new_state_estimator;
+
         return;
 
     def _config_sim(self) -> None:
@@ -106,7 +266,15 @@ class Sim(object):
         Reset simulation data.
         """
 
-        self._sim_data = {};
+        self._sim_data = None;
+
+        return;
+
+    def _check_controller(self) -> None:
+
+        if(self._controller is None and self._refs is not None and self._control_vars is not None and len(self._control_vars) == self._refs.shape[0]):
+
+            self._controller = _dummy_controller();
 
         return;
 
@@ -115,3 +283,16 @@ class RLSim(object):
     def __init__(self) -> None:
 
         return;
+
+class _dummy_controller(object):
+    """
+    Create a dummy controller for open-loop simulations.
+    """
+
+    def __init__(self) -> None:
+
+        return;
+
+    def __call__(self, inputs: np.ndarray, refs: np.ndarray) -> np.ndarray:
+
+        return refs;
