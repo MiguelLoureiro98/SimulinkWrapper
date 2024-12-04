@@ -10,12 +10,13 @@ if __name__ == "__main__":
 
     from simulinkwrapper.simulations import Sim
 
-    model = "../_simulink/WT_pitch_actuator_no_sat";
+    model_path = "C:/Users/ml4/Desktop/Projects/Repos/_simulink/WT_pitch_actuator_no_sat";
+    model_name = "WT_pitch_actuator_no_sat";
     vars = ["beta"];
     ctrl = ["u"];
     ref = np.ones(shape=(1, 10001));
 
-    sim = Sim(model, vars, ctrl, reference_signals=ref);
+    sim = Sim(model_name, model_path, vars, ctrl, reference_signals=ref);
 
     print("Connected successfully...");
 

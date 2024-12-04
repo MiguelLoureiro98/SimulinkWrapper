@@ -31,7 +31,8 @@ import matlab.engine
 
 class Sim(object):
 
-    def __init__(self, 
+    def __init__(self,
+                 model_name: str, 
                  model_path: str,
                  measured_variables: list[str],
                  controlled_variables: list[str] | None=None,
@@ -44,7 +45,8 @@ class Sim(object):
                  stop_time: int | float=10.0,
                  time_step: int | float=0.001) -> None:
         
-        self._model = model_path;
+        self._model_name = model_name;
+        self._model_path = model_path;
         self._measurements = measured_variables;
         self._control_vars = controlled_variables;
         self._controller = controller;
@@ -89,7 +91,7 @@ class Sim(object):
 
         for name, value in self._varying_params:
 
-            self._eng.eval(f"set_param('{self._model}/{name}', 'Value', '{value}')");
+            self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
 
         if(self._controller is None):
 
@@ -114,17 +116,17 @@ class Sim(object):
         
         for control_var, u in zip(self._control_vars, control_actions):
 
-            self._eng.eval(f"set_param('{self._model}/{control_var}', 'Value', '{u}')");
+            self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u}')");
 
         time_index += 1;
 
-        while(self._eng.eval(f"get_param('{self._model}', 'SimulationStatus');", nargout=1) != "stopped"):
+        while(self._eng.eval(f"get_param('{self._model_name}', 'SimulationStatus');", nargout=1) != "stopped"):
 
             for name, value in self._varying_params:
 
-                self._eng.eval(f"set_param('{self._model}/{name}', 'Value', '{value}')");
+                self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
 
-            if(self._eng.eval(f"get_param('{self._model}', 'SimulationTime')", nargout=1) >= next_sample):
+            if(self._eng.eval(f"get_param('{self._model_name}', 'SimulationTime')", nargout=1) >= next_sample):
 
                 #TODO: Add logs or progress bar to report on simulation progress.
 
@@ -149,11 +151,11 @@ class Sim(object):
 
                 for control_var, u in zip(self._control_vars, control_actions):
 
-                    self._eng.eval(f"set_param('{self._model}/{control_var}', 'Value', '{u}')");
+                    self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u}')");
 
                 next_sample += self._controller.Ts; #! Controller must have a Ts attribute or property.
 
-            self._eng.eval(f"set_param('{self._model}', 'SimulationCommand', 'continue', 'SimulationCommand', 'pause')", nargout=0);
+            self._eng.eval(f"set_param('{self._model_name}', 'SimulationCommand', 'continue', 'SimulationCommand', 'pause')", nargout=0);
             time_index += 1;
 
         vars_list = self._measurements + self._control_vars;
@@ -301,14 +303,14 @@ class Sim(object):
         Configure simulation settings.
         """
 
-        self._eng.eval(f"model = '{self._model}';", nargout=0);
+        self._eng.eval(f"model = '{self._model_path}';", nargout=0);
         self._eng.eval("load_system(model);", nargout=0);
 
         for (parameter, value) in self._settings.items():
 
-            self._eng.eval("set_param('{}', '{}', '{}');".format(self._model, parameter, value), nargout=0);
+            self._eng.eval("set_param('{}', '{}', '{}');".format(self._model_name, parameter, value), nargout=0);
 
-        self._eng.eval("set_param('{}', 'SimulationCommand', 'start', 'SimulationCommand', 'pause');".format(self._model), nargout=0);
+        self._eng.eval("set_param('{}', 'SimulationCommand', 'start', 'SimulationCommand', 'pause');".format(self._model_name), nargout=0);
 
         return;
 
