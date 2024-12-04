@@ -91,9 +91,11 @@ class Sim(object):
                     
                     measurement_data[var] += self._noise[var][time_index];
 
-        for name, value in self._varying_params:
+        if(self._varying_params is not None):
 
-            self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
+            for name, value in self._varying_params:
+
+                self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
 
         if(self._controller is None):
 
@@ -124,9 +126,11 @@ class Sim(object):
 
         while(self._eng.eval(f"get_param('{self._model_name}', 'SimulationStatus');", nargout=1) != "stopped"):
 
-            for name, value in self._varying_params:
+            if(self._varying_params is not None):
 
-                self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
+                for name, value in self._varying_params:
+
+                    self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
 
             if(self._eng.eval(f"get_param('{self._model_name}', 'SimulationTime')", nargout=1) >= next_sample):
 
