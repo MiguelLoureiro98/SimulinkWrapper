@@ -120,7 +120,7 @@ class Sim(object):
         
         for control_var, u in zip(self._control_vars, control_actions):
 
-            self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u}')");
+            self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u.item()}')"); #! Controllers must return an array!
 
         time_index += 1;
 
@@ -159,7 +159,7 @@ class Sim(object):
 
                 for control_var, u in zip(self._control_vars, control_actions):
 
-                    self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u}')");
+                    self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u.item()}')");
 
                 next_sample += self._controller.Ts; #! Controller must have a Ts attribute or property.
 
