@@ -85,9 +85,11 @@ class Sim(object):
             self._eng.eval(f"{var} = out.{var};", nargout=0);
             measurement_data[var] = self._eng.workspace[f"{var}"];
             
-            if(var in self._noise.keys()):
-                
-                measurement_data[var] += self._noise[var][time_index];
+            if(self._noise is not None):
+
+                if(var in self._noise.keys()):
+                    
+                    measurement_data[var] += self._noise[var][time_index];
 
         for name, value in self._varying_params:
 
@@ -135,9 +137,11 @@ class Sim(object):
                     self._eng.eval(f"{var} = out.{var}(length(out.{var}));", nargout=0);
                     measurement_data[var] = self._eng.workspace[f"{var}"];
                 
-                    if(var in self._noise.keys()):
-                
-                        measurement_data[var] += self._noise[var][time_index];
+                    if(self._noise is not None):
+
+                        if(var in self._noise.keys()):
+                    
+                            measurement_data[var] += self._noise[var][time_index];
 
                 if(self._state_estimator is not None):
 
