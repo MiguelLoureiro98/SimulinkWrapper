@@ -301,7 +301,7 @@ class Sim(object):
         Configure simulation settings.
         """
 
-        self._eng.eval(f"model = {self._model}';", nargout=0);
+        self._eng.eval(f"model = {self._model};", nargout=0);
         self._eng.eval("load_system(model);", nargout=0);
 
         for (parameter, value) in self._settings.items():
