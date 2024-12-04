@@ -98,7 +98,7 @@ class Sim(object):
 
         else:
 
-            next_sample = self._controller.Ts;
+            next_sample = self._controller.Ts; #! Controller must have a Ts attribute or property.
 
         measurement_vals = np.array([val for val in measurement_data.values()]);
 
@@ -171,14 +171,61 @@ class Sim(object):
 
         return self._sim_data;
 
-    def plot(self, height: float=10.0, width: float=10.0) -> None:
-        # Plot simulation results.
+    def plot(self, variable: str, reference_index: int | None=None, height: float=10.0, width: float=10.0, title: str="Results") -> None:
+        """
+        Plot simulation results.
 
-        #This method can be used to visualise simulation results.
+        This method can be used to visualise simulation results.
 
-        #TODO: Write this method once the run method is completed.
+        Parameters
+        ----------
+        variable : str
+            Variable to plot (could be a controlled variable).
 
-        pass
+        reference_index : int | None, optional
+            Index of the reference signal to plot (starts from zero).
+
+        height : float, default=10.0
+            Figure height.
+
+        width : float, default=10.0
+            Figure width.
+
+        title : str, default="Results"
+            Plot title.
+        """
+
+        fig, ax = plt.subplots();
+        fig.set_size_inches(width, height);
+
+        if(reference_index is not None and self._refs is not None):
+            
+            ax.plot(self._sim_data["t"], self._refs[reference_index], label="Reference");
+        
+        ax.plot(self._sim_data["t"], self._sim_data[variable], label=variable);
+        ax.set_title(title);
+        ax.set_xlabel("t (s)");
+        ax.set_ylabel(variable);
+        ax.grid(visible=True);
+        xfactor = 1.0005;
+        yfactor = 1.05;
+
+        if(reference_index is not None):
+
+            minlim = np.fmin(self._sim_data[variable].min(), self._refs[reference_index].min());
+            maxlim = np.fmax(self._sim_data[variable].max(), self._refs[reference_index].max());
+        
+        else:
+
+            minlim = self._sim_data[variable].min();
+            maxlim = self._sim_data[variable].max();
+
+        plt.xlim([self._sim_data["t"].min() * xfactor, self._sim_data["t"].max() * xfactor]);
+        plt.ylim([minlim * yfactor, maxlim * yfactor]);
+        plt.legend();
+        plt.show();
+
+        return;
 
     def save(self, file_path: str) -> None:
         """
@@ -216,8 +263,9 @@ class Sim(object):
         Change the system's controller.
 
         This method can be used to change the system's controller either before or after \
-        a simulation has been run. This can be useful to run multiple simulations ... .
-        Note that changing controllers while the simulation is running is currently not supported.
+        a simulation has been run. This can be useful to run multiple simulations with different \
+        controllers (e.g. for tuning purposes).
+        Note that changing controllers while the simulation is running is not supported.
 
         Parameters
         ----------
@@ -231,9 +279,12 @@ class Sim(object):
 
     def set_state_estimator(self, new_state_estimator: any) -> None:
         """
-        _summary_
+        Change the system's state estimator.
 
-        _extended_summary_
+        This method can be used to change the system's state estimator either before or after \
+        a simulation has been run. This can be useful to run multiple simulations with different \
+        state estimators (e.g. for tuning purposes).
+        Note that changing state estimators while the simulation is running is not supported.
 
         Parameters
         ----------
@@ -271,6 +322,9 @@ class Sim(object):
         return;
 
     def _check_controller(self) -> None:
+        """
+        Use dummy controller for open-loop simulations.
+        """
 
         if(self._controller is None and self._refs is not None and self._control_vars is not None and len(self._control_vars) == self._refs.shape[0]):
 
