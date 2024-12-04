@@ -116,7 +116,7 @@ class Sim(object):
 
             controller_inputs = measurement_vals;
 
-        control_actions = self._controller(controller_inputs, self._refs[time_index:time_index+self._lookahead]); #! Controller must override the call method.
+        control_actions = self._controller(controller_inputs, self._refs[:, time_index:time_index+self._lookahead]); #! Controller must override the call method.
         
         for control_var, u in zip(self._control_vars, control_actions):
 
@@ -155,7 +155,7 @@ class Sim(object):
 
                     controller_inputs = measurement_vals;
 
-                control_actions = self._controller(controller_inputs, self._refs[time_index:time_index+self._lookahead]); #! Controller must override the call method.
+                control_actions = self._controller(controller_inputs, self._refs[:, time_index:time_index+self._lookahead]); #! Controller must override the call method.
 
                 for control_var, u in zip(self._control_vars, control_actions):
 
