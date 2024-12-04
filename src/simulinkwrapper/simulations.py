@@ -59,6 +59,8 @@ class Sim(object):
         self._eng = matlab.engine.start_matlab();
         self._sim_data = None;
 
+        #TODO: Add variable step solver option (if var_step=True [default], "time_step" is assigned to the MinStep setting)
+
         return;
 
     def run(self) -> pd.DataFrame:
@@ -126,6 +128,8 @@ class Sim(object):
 
         while(self._eng.eval(f"get_param('{self._model_name}', 'SimulationStatus');", nargout=1) != "stopped"):
 
+            print(time_index);
+
             if(self._varying_params is not None):
 
                 for name, value in self._varying_params:
@@ -166,7 +170,7 @@ class Sim(object):
             self._eng.eval(f"set_param('{self._model_name}', 'SimulationCommand', 'continue', 'SimulationCommand', 'pause')", nargout=0);
             time_index += 1;
 
-        vars_list = self._measurements + self._control_vars;
+        vars_list = self._measurements; #+ self._control_vars;
 
         for var in vars_list:
 

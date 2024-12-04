@@ -14,9 +14,9 @@ if __name__ == "__main__":
     model_name = "WT_pitch_actuator_no_sat";
     vars = ["beta"];
     ctrl = ["u"];
-    ref = np.ones(shape=(1, 10001));
+    ref = np.ones(shape=(1, 801));
 
-    sim = Sim(model_name, model_path, vars, ctrl, reference_signals=ref);
+    sim = Sim(model_name, model_path, vars, ctrl, reference_signals=ref, stop_time=0.8);
 
     print("Connected successfully...");
 
