@@ -11,10 +11,10 @@ authors = [
 maintainers = [
     {name = "Miguel Santos Loureiro", email = "miguel.santos.loureiro@gmail.com"}
 ]
-description = "A Python package for advanced control systems design and deployment."
+description = "A Python wrapper for Simulink using the Matlab Python Engine."
 readme = "README.md"
 license = { file = "LICENSE" }
-keywords = ["Control Systems", "Machine Learning", "Optimisation", "Deployment"]
+keywords = ["Simulink", "Wrapper", "Simulations", "Dynamical systems"]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
