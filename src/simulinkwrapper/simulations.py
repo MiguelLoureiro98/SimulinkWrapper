@@ -338,7 +338,7 @@ class Sim(object):
 
         if(self._controller is None and self._refs is not None and self._control_vars is not None and len(self._control_vars) == self._refs.shape[0]):
 
-            self._controller = _dummy_controller();
+            self._controller = _dummy_controller(self._settings["FixedStep"]);
 
         return;
 
@@ -353,7 +353,9 @@ class _dummy_controller(object):
     Create a dummy controller for open-loop simulations.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, time_step: float) -> None:
+
+        self.Ts = time_step;
 
         return;
 
