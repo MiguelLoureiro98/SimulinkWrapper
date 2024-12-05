@@ -241,25 +241,51 @@ class Sim(object):
 
         return;
 
-    def save(self, file_path: str) -> None:
+    def save(self, file_path: str, format: str="csv") -> None:
         """
         Save simulation results to a file.
 
-        This method can be used to save simulation results to a .csv file.
+        This method can be used to save simulation results to a file.
 
         Parameters
         ----------
         file_path : str
             Path to the file where the results should be stored.
 
-        #TODO: finish writing this method once the run method is completed and tested.
+        format : {"csv", "pickle", "parquet", "feather"}, str, default="csv"
+            File format.
+
+        Raises
+        ------
+        ValueError
+            If an unsupported file format is specified.
         """
 
-        # Add support for other file types -> pickle and parquet.
-        # Check for file termination and select the saving procedure accordingly.
-        # Raise an exception if an unsupported file format (or none at all) is specified.
+        supported_formats = ["csv", "pickle", "parquet", "feather"];
+        
+        if(format not in supported_formats):
 
-        pass
+            raise ValueError("Format not supported.");
+    
+        string = f"{file_path}.{format}";
+
+        if(format == "csv"):
+
+            self._sim_data.to_csv(string);
+
+        elif(format == "pickle"):
+
+            self._sim_data.to_pickle(string);
+
+        elif(format == "parquet"):
+
+            self._sim_data.to_parquet(string);
+
+        else:
+
+            self._sim_data.to_feather(string);
+
+        return;
 
     def disconnect(self) -> None:
         """
