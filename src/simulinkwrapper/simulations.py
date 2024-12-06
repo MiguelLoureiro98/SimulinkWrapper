@@ -279,7 +279,8 @@ class Sim(object):
         """
         Save simulation results to a file.
 
-        This method can be used to save simulation results to a file.
+        This method can be used to save simulation results to a file. \
+        CSV, pickle, parquet, and feather files are supported.
 
         Parameters
         ----------
