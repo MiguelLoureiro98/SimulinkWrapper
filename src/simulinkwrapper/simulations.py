@@ -156,7 +156,7 @@ class Sim(object):
 
         while(self._eng.eval(f"get_param('{self._model_name}', 'SimulationStatus');", nargout=1) != "stopped"):
 
-            print(time_index);
+            #print(time_index);
 
             if(self._varying_params is not None):
 
