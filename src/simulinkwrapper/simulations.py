@@ -43,7 +43,9 @@ class Sim(object):
                  reference_lookahead: int=1,
                  noise_signals: dict[str, np.ndarray] | None=None,
                  stop_time: int | float=10.0,
-                 time_step: int | float=0.001) -> None:
+                 time_step: int | float=0.001,
+                 max_step: int | float=0.01,
+                 solver_type: str="var_step") -> None:
         
         self._model_name = model_name;
         self._model_path = model_path;
@@ -55,7 +57,25 @@ class Sim(object):
         self._refs = reference_signals;
         self._lookahead = reference_lookahead;
         self._noise = noise_signals;
-        self._settings = {"StopTime": stop_time, "FixedStep": time_step};
+
+        if(solver_type == "var_step"):
+
+            self._step_type = "MinStep";
+        
+        elif(solver_type == "fixed_step"):
+
+            self._step_type = "FixedStep";
+        
+        else:
+
+            raise ValueError("Please choose either a fixed-step or a variable-step solver.");
+
+        self._settings = {"StopTime": stop_time, self._step_type: time_step};
+
+        if(solver_type == "var_step"):
+
+            self._settings["MaxStep"] = max_step;
+
         self._eng = matlab.engine.start_matlab();
         self._sim_data = None;
 
@@ -118,11 +138,19 @@ class Sim(object):
 
             controller_inputs = measurement_vals;
 
-        control_actions = self._controller(controller_inputs, self._refs[:, time_index:time_index+self._lookahead]); #! Controller must override the call method.
-        
-        for control_var, u in zip(self._control_vars, control_actions):
+        if(self._refs is not None):
 
-            self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u.item()}')", nargout=0); #! Controllers must return an array!
+            control_actions = self._controller(controller_inputs, self._refs[:, time_index:time_index+self._lookahead]); #! Controller must override the call method.
+        
+        else:
+
+            control_actions = self._controller(controller_inputs);
+
+        if(self._control_vars is not None):
+
+            for control_var, u in zip(self._control_vars, control_actions):
+
+                self._eng.eval(f"set_param('{self._model_name}/{control_var}', 'Value', '{u.item()}')", nargout=0); #! Controllers must return an array!
 
         time_index += 1;
 
@@ -136,7 +164,7 @@ class Sim(object):
 
                     self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
 
-            if(self._eng.eval(f"get_param('{self._model_name}', 'SimulationTime')", nargout=1) >= next_sample):
+            if(self._eng.eval(f"get_param('{self._model_name}', 'SimulationTime')", nargout=1) >= next_sample and self._control_vars is not None):
 
                 #TODO: Add logs or progress bar to report on simulation progress.
 
@@ -159,7 +187,13 @@ class Sim(object):
 
                     controller_inputs = measurement_vals;
 
-                control_actions = self._controller(controller_inputs, self._refs[:, time_index:time_index+self._lookahead]); #! Controller must override the call method.
+                if(self._refs is not None):
+
+                    control_actions = self._controller(controller_inputs, self._refs[:, time_index:time_index+self._lookahead]); #! Controller must override the call method.
+        
+                else:
+
+                    control_actions = self._controller(controller_inputs);
 
                 for control_var, u in zip(self._control_vars, control_actions):
 
@@ -271,7 +305,7 @@ class Sim(object):
 
         if(format == "csv"):
 
-            self._sim_data.to_csv(string);
+            self._sim_data.to_csv(string, index=False);
 
         elif(format == "pickle"):
 
@@ -368,7 +402,7 @@ class Sim(object):
 
         if(self._controller is None and self._refs is not None and self._control_vars is not None and len(self._control_vars) == self._refs.shape[0]):
 
-            self._controller = _dummy_controller(self._settings["FixedStep"]);
+            self._controller = _dummy_controller(self._settings[self._step_type]);
 
         return;
 
@@ -389,6 +423,6 @@ class _dummy_controller(object):
 
         return;
 
-    def __call__(self, inputs: np.ndarray, refs: np.ndarray) -> np.ndarray:
+    def __call__(self, inputs: np.ndarray, refs: np.ndarray=np.array([0])) -> np.ndarray:
 
         return refs;

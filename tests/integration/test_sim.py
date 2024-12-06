@@ -14,14 +14,14 @@ if __name__ == "__main__":
     model_name = "WT_pitch_actuator_no_sat";
     vars = ["beta"];
     ctrl = ["u"];
-    ref = np.ones(shape=(1, 801));
+    ref = np.ones(shape=(1, 10001));
 
-    sim = Sim(model_name, model_path, vars, ctrl, reference_signals=ref, stop_time=0.8);
+    sim = Sim(model_name, model_path, vars, ctrl, reference_signals=ref, stop_time=10.0);
 
     print("Connected successfully...");
 
     results = sim.run();
-    sim.plot("beta", 0);
+    sim.plot("beta");
 
     sim.disconnect();
 
