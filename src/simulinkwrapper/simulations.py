@@ -115,9 +115,9 @@ class Sim(object):
 
         if(self._varying_params is not None):
 
-            for name, value in self._varying_params:
+            for name, value in self._varying_params.items():
 
-                self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
+                self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value[time_index]}')", nargout=0);
 
         if(self._controller is None):
 
@@ -160,9 +160,9 @@ class Sim(object):
 
             if(self._varying_params is not None):
 
-                for name, value in self._varying_params:
+                for name, value in self._varying_params.items():
 
-                    self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value}')");
+                    self._eng.eval(f"set_param('{self._model_name}/{name}', 'Value', '{value[time_index]}')", nargout=0);
 
             if(self._eng.eval(f"get_param('{self._model_name}', 'SimulationTime')", nargout=1) >= next_sample and self._control_vars is not None):
 
