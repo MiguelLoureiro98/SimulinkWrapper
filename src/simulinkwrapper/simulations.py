@@ -19,9 +19,6 @@ Classes
 -------
 Sim
     Run a simulation in Simulink.
-
-RLSim
-    Run a simulation in Simulink as if it were an environment for Reinforcement Learning agents.
 """
 
 import numpy as np
@@ -30,6 +27,98 @@ import matplotlib.pyplot as plt
 import matlab.engine
 
 class Sim(object):
+    """
+    Simulator class.
+
+    This class can be used to simulate Simulink models and save the results to a file. \
+    Several simulation settings can be changed by the user, such as the final simulation \
+    time, the minimum and maximum time steps, and whether to use a fixed-step or a \
+    variable-step solver. \
+    Controllers, state estimators, parameter-varying systems and noise generation are also supported. 
+
+    Parameters
+    ----------
+    model_name : str
+        Name of the Simulink model. No need to include the extension.
+
+    model_path : str
+        Path to the model.
+
+    measured_variables : list[str]
+        List containing the names of every measured variable. 
+        These must correspond to Simulink "To Workspace" block names.
+
+    controlled_variables : list[str], optional
+        List containing the names of every controlled variable. 
+        These must correspond to Simulink "Constant" block names.
+
+    controller : any, optional
+        Control system (class). Must have a 'Ts' attribute (sampling time).
+        Its __call__ method should receive measurements or state estimates as inputs, \
+        as well as reference signals (optional), and return an array of control actions.
+
+    state_estimator : any, optional
+        State estimator (class). Its __call__ method should receive measurements, and \
+        return an array of state estimates to be fed to the controller.
+
+    varying_parameters : dict[str, np.ndarray], optional
+        A dictionary containing the names of time-varying parameters and \
+        their respective arrays of values. The names must correspond to those \
+        of Simulink "Constant" blocks.
+
+    reference_signals : np.ndarray, optional
+        An (n, t) array of reference signals, where n is the number of reference \
+        signals, and t is the number of time steps specified for this simulation.
+
+    reference_lookahead : int, default=1
+        Parameter that controls how many future reference values are passed to the controller.
+
+    stop_time : int | float, default=10.0
+        Simulation stop time.
+
+    time_step : int | float, default=0.001
+        Simulation time step. Will be interpreted as a fixed time step if \
+        a fixed-step solver is specified, and as the minimum time step if \
+        a variable-step solver is selected.
+
+    max_step : int | float, default=0.01
+        Maximum allowable time step for variable-step simulations.
+        Ignored if a fixed-step solver is selected.
+
+    solver_type : {"var_step", "fixed_step"}, str, default="var_step"
+        Solver type.
+
+    Methods
+    -------
+    run()
+        Run a simulation.
+
+    plot(variable: str, reference_index: int | None=None, height: float=10.0, width: float=10.0, title: str="Results")
+        Plot simulation results.
+
+    save(file_path: str, format: str="csv")
+        Save simulation results to a file.
+
+    disconnect()
+        End Matlab engine session.
+
+    set_controller(new_controller: any)
+        Change the controller.
+
+    set_state_estimator(new_state_estimator: any)
+        Change the state estimator
+
+    Raises
+    ------
+    ValueError
+        If 'solver_type' is neither 'var_step' nor 'fixed_step'.
+
+    Warning
+    -------
+    The model's solver type definitions must be compatible with those specified when \
+    instatiating the class (i.e. fixed- or variable-step solvers must also be specified \
+    in the Simulink model).
+    """
 
     def __init__(self,
                  model_name: str, 
@@ -407,11 +496,11 @@ class Sim(object):
 
         return;
 
-class RLSim(object):
+#class RLSim(object):
 
-    def __init__(self) -> None:
+#    def __init__(self) -> None:
 
-        return;
+#        return;
 
 class _dummy_controller(object):
     """
